@@ -412,7 +412,8 @@
         return total;
     }
 
-    function copyResult() {
+function copyResult() {
+        // 1. 화면의 입력값들 수집
         const title = document.getElementById('projectTitle').value || '(미입력)';
         const category = document.getElementById('category').value || '(미선택)';
         const level = document.getElementById('serviceLevel').value || '(미선택)';
@@ -425,6 +426,27 @@
         if(document.getElementById('opt3').checked) opts.push(PRICES.OPT3_NAME);
         const optText = opts.length > 0 ? opts.join(', ') : '없음';
 
+        // 2. [구글 시트 전송] - 작가님의 '비밀 통로' 주소
+        const scriptURL = '여기에_복사한_웹앱_URL을_넣으세요'; 
+        
+        const params = new URLSearchParams();
+        params.append('project_title', title);
+        params.append('category', category);
+        params.append('service_level', level);
+        params.append('quantity', qty);
+        params.append('option_summary', optText);
+        params.append('total_estimate', total);
+
+        // 구글 시트로 데이터 전송 (넷리파이 없이 다이렉트 전송)
+        fetch(scriptURL, { 
+            method: 'POST', 
+            mode: 'no-cors', 
+            body: params 
+        })
+        .then(() => console.log("✅ 구글 시트 저장 완료!"))
+        .catch(e => console.log("❌ 시트 전송 실패:", e));
+
+        // 3. [클립보드 복사용 텍스트]
         const text = `📋 [자동 견적 의뢰서]
 
 1. 프로젝트: ${title}
@@ -435,29 +457,15 @@
 
 💰 예상 견적: ${total}`;
 
-        // Netlify 전송
-        const form = document.querySelector('form[name="universal_quote"]');
-        if (form) {
-            document.getElementById('hiddenTotal').value = total;
-            const formData = new FormData(form);
-            fetch("/", {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: new URLSearchParams(formData).toString()
-            }).catch(e => console.log(e));
-        }
-
+        // 4. 복사하고 모달 띄우기
         navigator.clipboard.writeText(text).then(() => {
             document.getElementById('resultModal').classList.add('visible');
         }).catch(err => {
             alert('복사 실패. 내용을 직접 캡처해주세요.');
         });
     }
-
-    window.addEventListener('load', () => {
-        loadPricesFromSheet();
-    });
 </script>
 
 </body>
 </html>
+
