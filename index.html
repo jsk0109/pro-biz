@@ -285,7 +285,9 @@
                 return;
             }
 
-            const response = await fetch(SHEET_URL);
+            // [수정] 캐시 방지: URL 뒤에 현재 시간을 붙여서 매번 새 데이터를 가져오게 함
+            const noCacheUrl = SHEET_URL + (SHEET_URL.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+            const response = await fetch(noCacheUrl);
             const text = await response.text();
             
             // [안전장치] CSV가 아니라 일반 웹페이지 링크를 넣었는지 확인
@@ -294,12 +296,21 @@
                 return;
             }
 
-            const rows = text.split('\n').map(row => row.split(','));
+            // [수정] CSV 파싱 로직 개선 (쉼표가 포함된 텍스트나 가격 오류 방지)
+            const rows = text.split('\n');
             
-            rows.forEach(([key, value]) => {
-                if (!key || !value) return;
-                const cleanKey = key.trim();
-                const cleanVal = value.trim();
+            rows.forEach(row => {
+                // 첫 번째 쉼표를 기준으로 키와 값을 나눔
+                const firstCommaIdx = row.indexOf(',');
+                if (firstCommaIdx === -1) return;
+
+                const cleanKey = row.substring(0, firstCommaIdx).trim();
+                let cleanVal = row.substring(firstCommaIdx + 1).trim();
+                
+                // 구글 시트가 추가한 따옴표(") 제거
+                if (cleanVal.startsWith('"') && cleanVal.endsWith('"')) {
+                    cleanVal = cleanVal.slice(1, -1).replace(/""/g, '"');
+                }
                 
                 // 숫자인지 텍스트인지 구별해서 저장
                 if (cleanKey.includes("NAME") || cleanKey.includes("TITLE") || cleanKey.includes("DESC") || cleanKey.includes("LBL") || cleanKey.includes("CATEGORY")) {
@@ -333,7 +344,7 @@
         const catSelect = document.getElementById('category');
         if (PRICES.CATEGORY_OPTIONS && catSelect) {
             catSelect.innerHTML = '<option value="" selected disabled hidden>선택해주세요</option>';
-            const opts = PRICES.CATEGORY_OPTIONS.split('|');
+            const opts = String(PRICES.CATEGORY_OPTIONS).split('|');
             opts.forEach(opt => {
                 const option = document.createElement('option');
                 option.value = opt.trim();
@@ -468,8 +479,3 @@ function copyResult() {
 
 </body>
 </html>
-
-
-
-
-
