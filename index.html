@@ -3,105 +3,231 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>만능 자동견적 계산기 (범용 템플릿)</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>출판엔지니어의 EPUB 제작 의뢰 및 자동견적서</title>
     <link rel="stylesheet" as="style" crossorigin="anonymous" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
         :root {
-            --primary-color: #2c3e50; /* 범용적인 네이비 컬러 */
-            --bg-color: #f8f9fa;
+            --primary-color: #1a237e;
+            --bg-color: #f0f2f5;
             --container-bg: #ffffff;
-            --text-main: #333333;
-            --border-color: #dee2e6;
-            --price-color: #e74c3c;
+            --text-main: #1a1a1a;
+            --text-sub: #333333;
+            --border-color: #bbbbbb;
+            --price-color: #d32f2f;
         }
         body {
             font-family: "Pretendard", sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            margin: 0; padding: 40px 20px;
-            display: flex; justify-content: center; min-height: 100vh;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
         }
         .container {
-            width: 100%; max-width: 600px; /* 조금 더 컴팩트하게 */
+            width: 100%;
+            max-width: 720px;
             background: var(--container-bg);
             border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
             overflow: hidden;
-            display: flex; flex-direction: column;
+            display: flex;
+            flex-direction: column;
+            min-height: 85vh;
         }
         
         /* Header */
         header {
-            background: var(--primary-color); padding: 30px; color: white; text-align: center;
+            background: var(--primary-color);
+            padding: 30px;
+            color: white;
+            text-align: center;
         }
         header h1 { margin: 0; font-size: 22px; font-weight: 800; }
-        header p { margin: 8px 0 0; opacity: 0.8; font-size: 14px; }
+        header p { margin: 8px 0 0; opacity: 0.9; font-size: 14px; }
 
         /* Tabs */
-        .tab-nav { display: flex; border-bottom: 1px solid var(--border-color); }
+        .tab-nav { display: flex; border-bottom: 1px solid var(--border-color); position: relative; }
         .tab-btn {
             flex: 1; padding: 15px; border: none; background: #fff;
-            font-size: 16px; font-weight: 600; color: #888;
-            cursor: pointer; transition: all 0.3s;
-            border-bottom: 3px solid transparent;
+            font-size: 16px; font-weight: 800; color: #333;
+            cursor: pointer; transition: color 0.5s;
         }
-        .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); background: #f8f9fa; }
+        .tab-btn.active { color: var(--primary-color); background: #f8f9fa; }
+        
+        /* Sliding Tab Line */
+        .tab-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background-color: var(--primary-color);
+            transition: left 0.5s cubic-bezier(0.23, 1, 0.32, 1), width 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+        }
 
         /* Content */
-        .tab-content { display: none; padding: 40px 30px; animation: fadeIn 0.5s; }
-        .tab-content.active { display: block; }
+        .tab-content { display: none; padding: 50px 40px; animation: fadeIn 0.6s ease-out; flex: 1; }
+        .tab-content.active { display: flex; flex-direction: column; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         /* Forms */
-        .form-group { margin-bottom: 30px; }
-        .form-label { display: block; font-weight: 700; margin-bottom: 8px; font-size: 15px; color: #555; }
+        .form-group { margin-bottom: 50px; padding-bottom: 40px; border-bottom: 1px dashed var(--border-color); }
+        .form-group:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .form-label { display: block; font-weight: 700; margin-bottom: 8px; font-size: 16px; color: #4e342e; }
         .form-input, .form-select, .form-textarea {
             width: 100%; padding: 12px; border: 1px solid var(--border-color);
-            border-radius: 8px; font-size: 15px; box-sizing: border-box;
+            border-radius: 8px; font-size: 16px; box-sizing: border-box;
+        }
+        .form-textarea { resize: vertical; min-height: 80px; }
+        
+        /* [UI 개선] 입력창 포커스 및 선택 강조 스타일 */
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(94, 53, 177, 0.2);
+        }
+        .form-select.is-selected {
+            border-color: var(--primary-color);
+            background-color: #ede7f6; /* 선택 시 연한 보라색 배경 */
+            font-weight: 700; /* 글씨 굵게 */
+            box-shadow: 0 0 0 1px var(--primary-color) inset; /* 테두리 강조 */
         }
         
-        /* Quote Box */
+        /* Quote Section */
         .quote-box {
-            background: #f1f3f5; border-radius: 12px; padding: 30px; margin-top: 40px;
+            background: #fafafa; border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 40px; margin-top: 60px;
         }
-        .quote-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 15px; }
+        .quote-row {
+            display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 16px;
+        }
         .quote-total {
-            border-top: 2px solid #ccc; padding-top: 15px; margin-top: 15px;
+            border-top: 2px solid var(--border-color); padding-top: 15px; margin-top: 15px;
             display: flex; justify-content: space-between; align-items: center;
         }
         .total-price { font-size: 24px; font-weight: 800; color: var(--price-color); }
 
-        /* Checkbox */
+        /* Checkbox Card */
         .checkbox-group { display: flex; flex-direction: column; gap: 10px; }
         .checkbox-card {
-            display: flex; align-items: center; padding: 12px;
+            display: flex; flex-direction: column; align-items: flex-start; padding: 12px;
             border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;
-            transition: background 0.2s;
         }
-        .checkbox-card:hover { background: #f8f9fa; }
-        .checkbox-card input { margin-right: 12px; transform: scale(1.2); }
+        .checkbox-row { display: flex; align-items: center; width: 100%; }
+        .checkbox-row input { margin-right: 10px; transform: scale(1.2); }
+        .checkbox-desc { font-size: 14px; color: #666; margin-left: 26px; margin-top: 4px; }
 
         /* Buttons */
-        .btn-next, .btn-submit {
-            width: 100%; padding: 15px; border: none; border-radius: 8px;
-            font-weight: 700; cursor: pointer; font-size: 16px; margin-top: 20px;
+        .btn-area { margin-top: 60px; margin-bottom: 40px; }
+        .btn-next {
+            width: 100%; padding: 14px; background: #333; color: white;
+            border: none; border-radius: 8px; font-weight: 700; cursor: pointer;
         }
-        .btn-next { background: #333; color: white; }
-        .btn-submit { background: var(--primary-color); color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .btn-submit {
+            width: 100%; padding: 16px; background: var(--primary-color); color: white;
+            border: none; border-radius: 8px; font-weight: 700; cursor: pointer;
+            font-size: 16px; box-shadow: 0 4px 12px rgba(94, 53, 177, 0.3);
+        }
 
         /* Modal */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.6); z-index: 9999; display: none;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            display: none; /* flex 제거 */
         }
-        .modal-overlay.visible { display: block; }
+        .modal-overlay.visible {
+            display: block; /* flex 대신 block 사용 */
+            animation: fadeInBg 0.2s ease-out forwards;
+        }
         .modal-box {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            /* 화면 정중앙 강제 고정 (Flexbox 안 씀) */
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
             background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 360px; text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .modal-overlay.visible .modal-box {
+            animation: popIn 0.3s ease-out forwards;
+        }
+        
+        @keyframes fadeInBg { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes popIn { 
+            /* translate(-50%, -50%)를 유지한 채로 scale만 조절 */
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); } 
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 
         }
         .modal-btn {
             background: #e1e4e8; color: #333; border: none; padding: 12px; width: 100%;
             border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 15px;
+        }
+
+        /* Color Picker & Preview Styles (Merged) */
+        .picker-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: #fafafa; margin-bottom: 10px; }
+        .picker-info { flex: 1; }
+        .picker-label { font-weight: 700; font-size: 16px; display: block; }
+        .picker-desc { font-size: 14px; color: #555; margin-top: 2px; }
+        input[type="color"] { -webkit-appearance: none; appearance: none; border: none; width: 40px; height: 40px; cursor: pointer; background: none; padding: 0; }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: 1px solid rgba(0,0,0,0.1); border-radius: 50%; }
+
+        .preview-box { border: 1px solid var(--border-color); border-radius: 12px; margin-top: 50px; margin-bottom: 50px; text-align: center; padding: 50px 30px; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #ffffff; transition: background 0.3s; }
+        .chapter-num { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+        .chapter-title { font-size: 24px; font-weight: 800; margin: 0 0 15px 0; line-height: 1.3; }
+        .divider-line { width: 30px; height: 3px; margin: 0 auto 20px; border-radius: 2px; }
+        .point-icon { font-size: 20px; margin-bottom: 15px; }
+        .quote-text { font-size: 16px; font-style: italic; margin-bottom: 20px; font-weight: 500; }
+        .body-text { font-size: 15px; line-height: 1.7; color: #333; text-align: justify; max-width: 100%; }
+
+        /* Bookstore Buttons */
+        .store-links { margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .store-btn {
+            padding: 6px 12px; background: #fff; border: 1px solid var(--border-color); border-radius: 20px;
+            font-size: 12px; font-weight: 600; text-decoration: none; transition: all 0.2s; display: flex; align-items: center;
+        }
+        .store-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rgba(0,0,0,0.05); filter: brightness(0.95); }
+        
+        /* Brand Colors (Light) */
+        .store-btn.kyobo { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; } /* 교보문고: 연한 초록 */
+        .store-btn.yes24 { background: #e3f2fd; color: #1565c0; border-color: #90caf9; } /* 예스24: 연한 파랑 */
+        .store-btn.aladin { background: #fff0f6; color: #d6336c; border-color: #fcc2d7; } /* 알라딘: 연한 핑크 */
+        .store-btn.ridi { background: #e0f7fa; color: #00838f; border-color: #80deea; } /* 리디북스: 연한 민트 */
+        .store-label { font-size: 13px; color: #666; margin-right: 5px; }
+
+        /* Footer */
+        .app-footer {
+            text-align: center; padding: 20px; border-top: 1px solid var(--border-color);
+            color: #888; font-size: 13px; background: #fcfcfc; margin-top: auto;
+        }
+
+        /* Accordion Animation */
+        #counterBox { max-height: 0; overflow: hidden; opacity: 0; transition: all 0.4s ease; margin-top: 0; }
+        #counterBox.active { max-height: 500px; opacity: 1; margin-top: 15px; }
+        #counterArrow { display: inline-block; transition: transform 0.3s ease; }
+        #counterArrow.active { transform: rotate(180deg); }
+
+        /* 📱 모바일 최적화 (카드 형태 제거 및 여백 축소) */
+        @media (max-width: 768px) {
+            body {
+                padding: 0; /* 전체 배경 여백 제거 */
+                background-color: var(--container-bg); /* 배경색을 컨테이너와 동일하게 */
+            }
+            .container {
+                max-width: 100%;
+                border-radius: 0; /* 둥근 모서리 제거 */
+                box-shadow: none; /* 그림자 제거 (평면화) */
+                min-height: 100vh;
+            }
+            .tab-content {
+                padding: 30px 20px; /* 내부 콘텐츠 여백 축소 */
+            }
+            header {
+                padding: 25px 20px; /* 헤더 여백 축소 */
+            }
         }
     </style>
 </head>
@@ -109,288 +235,473 @@
 
 <div class="container">
     <header>
-        <h1 id="uiTitle">🧮 자동 견적 계산기</h1>
-        <p id="uiDesc">원하시는 옵션을 선택하면 예상 견적을 즉시 확인하실 수 있습니다.</p>
+        <h1>📚 출판엔지니어의 EPUB 제작 의뢰 및 자동견적서</h1>
+        <p>원고 상태와 제작 유형을 선택하면 견적이 계산됩니다.</p>
     </header>
 
-    <form name="universal_quote" method="POST" data-netlify="true">
-    <input type="hidden" name="form-name" value="universal_quote" />
-    <input type="hidden" name="total_estimate" id="hiddenTotal" />
+    <div id="quoteForm">
 
     <div class="tab-nav">
-        <button type="button" class="tab-btn active" onclick="openTab('tab1')">1. 의뢰 정보</button>
-        <button type="button" class="tab-btn" onclick="openTab('tab2')">2. 견적 확인</button>
+        <button type="button" class="tab-btn active" onclick="openTab('tab1')" data-tab="tab1">1. 책 정보</button>
+        <button type="button" class="tab-btn" onclick="openTab('tab2')" data-tab="tab2">2. 디자인</button>
+        <button type="button" class="tab-btn" onclick="openTab('tab3')" data-tab="tab3">3. 견적 확인</button>
+        <div class="tab-line"></div>
     </div>
 
-    <!-- TAB 1: 의뢰 정보 -->
+    <!-- TAB 1: 책 정보 -->
     <div id="tab1" class="tab-content active">
         <div class="form-group">
-            <label class="form-label" id="lblProject">Q. 프로젝트명 (또는 제목)</label>
-            <input type="text" id="projectTitle" name="project_title" class="form-input" placeholder="예: 홍길동 포트폴리오 디자인">
+            <label class="form-label">Q. 책의 제목을 입력해주세요 (미정시 가제목)</label>
+            <input type="text" id="title" name="title" class="form-input" placeholder="예: 직장인 재테크 노하우">
         </div>
         <div class="form-group">
-            <label class="form-label" id="lblCategory">Q. 의뢰 분야 / 업종</label>
+            <label class="form-label">Q. 책의 대략적인 카테고리는 무엇인가요?</label>
             <select id="category" name="category" class="form-select">
                 <option value="" selected disabled hidden>선택해주세요</option>
-                <!-- 엑셀에서 가져온 옵션들이 여기에 자동으로 채워집니다 -->
+                <option value="소설/에세이 (문학)">소설/에세이 (문학)</option>
+                <option value="경제/경영/자기계발">경제/경영/자기계발</option>
+                <option value="인문/사회/역사">인문/사회/역사</option>
+                <option value="실용/취미/건강">실용/취미/건강</option>
+                <option value="기타">기타</option>
             </select>
         </div>
         <div class="form-group">
-            <label class="form-label" id="lblLevel">Q. 작업 유형 (난이도)</label>
-            <select id="serviceLevel" name="service_level" class="form-select" onchange="calculateTotal()">
+            <label class="form-label">Q. 원고는 어떤 파일로 작성하셨나요?</label>
+            <select id="manuscriptType" name="manuscript_type" class="form-select">
                 <option value="" selected disabled hidden>선택해주세요</option>
-                <option value="STANDARD" id="optLevel1">STANDARD (기본형)</option>
-                <option value="DELUXE" id="optLevel2">DELUXE (고급형)</option>
-                <option value="PREMIUM" id="optLevel3">PREMIUM (프리미엄)</option>
+                <option value="워드">워드 (.docx)</option>
+                <option value="한글">한글 (.hwp)</option>
+                <option value="메모">메모/텍스트 (.txt)</option>
+                <option value="PDF">PDF (텍스트 추출 가능 파일)</option>
             </select>
-            <p style="font-size:13px; color:#666; margin-top:8px;">* 등급별 상세 내용은 서비스 설명 이미지를 참고해주세요.</p>
         </div>
-        
-        <button type="button" class="btn-next" onclick="openTab('tab2')">다음: 수량 및 옵션 선택 👉</button>
+        <div class="form-group">
+            <label class="form-label">Q. 현재 원고는 교정이 완료되었나요?</label>
+            <select id="status" name="status" class="form-select" onchange="showProofreadingInfo()">
+                <option value="" selected disabled hidden>선택해주세요</option>
+                <option value="네, 완료되었습니다 (무료 기초 교정 제공)">네, 완료되었습니다 (무료 기초 교정 제공)</option>
+                <option value="아니오, 아직 완료전입니다">아니오, 아직 완료전입니다</option>
+            </select>
+            <div id="proofreadingInfo" style="display:none; margin-top:10px; padding:12px; background-color:#f8f9fa; border-left:4px solid #5e35b1; border-radius:4px; font-size:14px; line-height:1.5; color:#444;">
+                <strong>🔎 무료 기초 교정 범위 안내</strong><br>
+                오탈자, 띄어쓰기, 기본적인 문법 오류, 문장 부호 오류 등 맞춤법 검사 수준의 교정을 진행합니다.<br>(문장 구조 변경이나 윤문은 '심화 교정' 옵션에 해당합니다.)
+            </div>
+        </div>
+
+        <div class="btn-area">
+            <button type="button" class="btn-next" onclick="openTab('tab2')">다음: 디자인 선택 👉</button>
+        </div>
     </div>
 
-    <!-- TAB 2: 견적 확인 -->
+    <!-- TAB 2: 디자인 -->
     <div id="tab2" class="tab-content">
         <div class="form-group">
-            <label class="form-label" id="lblQty">Q. 작업 수량 (단위: 개, 분, 페이지 등)</label>
-            <input type="number" id="quantity" name="quantity" class="form-input" value="1" min="1" oninput="calculateTotal()">
-            <span style="font-size:13px; color:#888; display:block; margin-top:4px;">* 기본 제공 수량 초과 시 추가금이 발생합니다.</span>
+            <label class="form-label">Q. 어떤 분위기의 디자인을 원하시나요?</label>
+            <select id="style" name="style" class="form-select" onchange="applyStyleColors()">
+                <option value="심플/미니멀">심플 & 미니멀 (깔끔함)</option>
+                <option value="비즈니스/신뢰">비즈니스 & 신뢰 (전문적)</option>
+                <option value="감성/에세이">감성 & 에세이 (따뜻함)</option>
+                <option value="열정/자기계발">열정 & 자기계발 (에너지)</option>
+                <option value="자연/힐링">자연 & 힐링 (편안함)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Q. 책에 사용할 포인트 컬러를 골라주세요</label>
+            <p style="font-size:14px; color:#555; margin-bottom:15px; line-height:1.5;">작가님의 책 속에 <strong>단 1개의 포인트 색상만 들어가야 한다면</strong> 어떤 색이 될까요?<br>가장 원하시는 색상을 1순위로 골라주시면, 상황에 따라 2~3순위 색상도 함께 활용하여 디자인해 드립니다.</p>
+            <div class="picker-item">
+                <div class="picker-info">
+                    <span class="picker-label">1순위 (Main)</span>
+                    <span class="picker-desc">제목/번호 (핵심 색상)</span>
+                </div>
+                <div style="text-align:center;">
+                    <input type="color" id="mainColor" name="main_color" value="#212529" oninput="updatePreview()">
+                    <div style="font-size:11px; color:#666; margin-top:4px; font-weight:600;">👆 클릭하여 변경</div>
+                </div>
+            </div>
+            <div class="picker-item">
+                <div class="picker-info">
+                    <span class="picker-label">2순위 (Sub)</span>
+                    <span class="picker-desc">아이콘 / 구분선 (포인트)</span>
+                </div>
+                <div style="text-align:center;">
+                    <input type="color" id="subColor" name="sub_color" value="#adb5bd" oninput="updatePreview()">
+                    <div style="font-size:11px; color:#666; margin-top:4px; font-weight:600;">👆 클릭하여 변경</div>
+                </div>
+            </div>
+            <div class="picker-item">
+                <div class="picker-info">
+                    <span class="picker-label">3순위 (Accent)</span>
+                    <span class="picker-desc">소제목 / 챕터번호 (보조)</span>
+                </div>
+                <div style="text-align:center;">
+                    <input type="color" id="accentColor" name="accent_color" value="#495057" oninput="updatePreview()">
+                    <div style="font-size:11px; color:#666; margin-top:4px; font-weight:600;">👆 클릭하여 변경</div>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 30px; border-bottom: none; padding-bottom: 0;">
+                <label class="form-label">Q. 원고를 직접 넣어보시겠어요? (체험하기)</label>
+                <p style="font-size:14px; color:#555; margin-bottom:10px; line-height:1.5;">여기에 원고의 한 챕터를 붙여넣으세요.<br><strong>첫 줄은 제목</strong>, <strong>숫자나 기호로 시작하는 줄(소제목)</strong>은 보조 컬러로 디자인됩니다.</p>
+                <textarea id="customText" class="form-textarea" style="height:150px;" placeholder="예시)&#10;제1장. 시작이 반이다&#10;&#10;1. 작은 습관의 힘 (소제목)&#10;많은 사람들이 거창한 목표를 세우지만 작심삼일로 끝납니다.&#10;&#10;2. 꾸준함이 답이다 (소제목)&#10;천 리 길도 한 걸음부터라는 말이 있습니다. 지금 바로 시작하세요." oninput="updatePreview()"></textarea>
+            </div>
+
+            <!-- [UI 개선] 미리보기 상단에 퀵 컬러 피커 배치 (모바일 스크롤 불편 해소) -->
+            <div style="display:flex; justify-content:space-between; align-items:end; margin-top: 50px; margin-bottom: 10px;">
+                <p style="font-weight: 700; font-size: 14px; color:#4e342e; margin:0;">👀 미리보기 (Preview)</p>
+                <div style="display:flex; align-items:center; gap:8px; background:#fff; padding:6px 12px; border:1px solid #ddd; border-radius:20px; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+                    <span style="font-size:12px; font-weight:700; color:#555;">🎨 색상변경</span>
+                    <input type="color" id="quickMain" value="#212529" oninput="syncColors('main', this.value)" style="width:24px; height:24px; border:none; padding:0; background:none; cursor:pointer;" title="Main Color">
+                    <input type="color" id="quickSub" value="#adb5bd" oninput="syncColors('sub', this.value)" style="width:24px; height:24px; border:none; padding:0; background:none; cursor:pointer;" title="Sub Color">
+                    <input type="color" id="quickAccent" value="#495057" oninput="syncColors('accent', this.value)" style="width:24px; height:24px; border:none; padding:0; background:none; cursor:pointer;" title="Accent Color">
+                </div>
+            </div>
+            <div class="preview-box" id="previewBox" style="margin-top: 0; margin-bottom: 0;">
+            <div class="chapter-num" id="prevNum">CHAPTER 01</div>
+            <h2 class="chapter-title" id="prevTitle">성공하는 사람들의<br>아주 작은 습관</h2>
+            <div class="divider-line" id="prevLine"></div>
+            <div class="point-icon" id="prevIcon">✦</div>
+            <div class="quote-text" id="prevQuote">"습관은 복리로 작용한다."</div>
+            <div class="body-text">
+                우리는 흔히 거창한 목표만이 인생을 바꾼다고 생각합니다. 하지만 실제로 삶을 변화시키는 것은 매일 반복되는 사소한 행동들입니다.
+            </div>
+        </div>
         </div>
 
         <div class="form-group">
-            <label class="form-label" id="lblOpts">Q. 추가 옵션 선택</label>
+            <label class="form-label">Q. 디자인시 참고할 만한 책이 있나요? (표지옵션 추가 고객용)</label>
+            <div class="store-links" style="display: block;">
+                <div style="margin-bottom: 10px; font-size: 13px; color: #666;">🔎 서점에서 스타일 찾기:</div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="https://ebook.kyobobook.co.kr/" target="_blank" class="store-btn kyobo">교보문고</a>
+                    <a href="https://www.yes24.com/Mall/Main/Book/017" target="_blank" class="store-btn yes24">예스24</a>
+                    <a href="https://www.aladin.co.kr/home/webookmain.aspx" target="_blank" class="store-btn aladin">알라딘</a>
+                    <a href="https://ridibooks.com/" target="_blank" class="store-btn ridi">리디북스</a>
+                </div>
+            </div>
+            <textarea id="ref" name="reference" class="form-textarea" placeholder="원하시는 느낌의 책 제목이나 링크가 있다면 적어주세요."></textarea>
+        </div>
+        <div class="btn-area">
+            <button type="button" class="btn-next" onclick="openTab('tab3')">다음: 견적 확인 👉</button>
+        </div>
+    </div>
+
+    <!-- TAB 3: 견적 확인 -->
+    <div id="tab3" class="tab-content">
+        <div class="form-group">
+            <label class="form-label">Q. 원하시는 제작 등급을 선택해주세요</label>
+            <p style="font-size:14px; color:#555; margin-bottom:15px; line-height:1.5;">
+                <strong>∙ STANDARD:</strong> 텍스트 위주, 가독성 최적화, 무결점 VSC코딩<br>
+                <strong>∙ DELUXE:</strong> 이미지/박스, 팝업/인라인 각주(무제한), 정보 구조화<br>
+                <strong>∙ PREMIUM:</strong> CSS 고급 편집, 종이책 감성, 소장 가치
+            </p>
+            <select id="serviceLevel" name="service_level" class="form-select" onchange="calculateTotal()" autocomplete="off">
+                <option value="" selected disabled hidden>선택해주세요</option>
+                <option value="STANDARD">STANDARD</option>
+                <option value="DELUXE">DELUXE</option>
+                <option value="PREMIUM">PREMIUM</option>
+            </select>
+            <div id="layoutNotice" style="display:none; margin-top:10px; padding:12px; background-color:#f8f9fa; border-left:4px solid #5e35b1; border-radius:4px; font-size:14px; line-height:1.5; color:#444;">
+                <strong>📢 이미지 배치 유의사항</strong><br>
+                E-book 전자책 특성상 모든 이미지는 <strong>문단 사이(Block)</strong>에 배치됩니다.<br>
+                (글자가 이미지를 감싸는 잡지식 레이아웃은 뷰어 호환성 문제로 구현이 불가능합니다.)
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Q. 원고 분량은 약 몇 페이지인가요? (A4 기준)</label>
+            <input type="number" id="pageCount" name="page_count" class="form-input" value="50" min="10" oninput="calculateTotal()" onblur="if(this.value<10){this.value=10;calculateTotal();}">
+            <div id="pageMsg" style="font-size:14px; margin-top:6px; font-weight:600;"></div>
+            <span id="pageHelpText" style="font-size:14px; color:#555; display:block; margin-top:4px;">* 텍스트 위주의 A4 원고 기준 (기본 50p, 대략 75,000자 분량 제공 / 초과 시 장당 2,000원)</span>
+        </div>
+        
+        <!-- Character Counter Tool -->
+        <div class="form-group">
+            <label class="form-label" style="color:#5e35b1; margin-bottom:12px;">['추가금액'이나 '할인금액' 등 정확한 견적산출을 원하시면 원고를 복사 붙여넣기 하세요.]</label>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleCounter()">
+                    <span style="font-weight:700; font-size:16px; color:#333;">🧮 글자 수로 페이지 계산기 (클릭)</span>
+                    <span style="font-size:16px; color:#444;"><span id="counterArrow">▼</span> 펼치기</span>
+                </div>
+                <div id="counterBox">
+                    <textarea id="textSource" name="text_source" class="form-textarea" style="height:120px; margin-bottom:10px; margin-top:15px;" placeholder="여기에 원고 내용을 붙여넣으세요. (자동 계산됨)" oninput="countChars()"></textarea>
+                    <div style="display:flex; gap: 15px; font-size:16px; color:#333; margin-bottom:10px; background:white; padding:10px; border-radius:6px; border:1px solid var(--border-color);">
+                        <span>공백 포함: <strong id="charCountWithSpace">0</strong>자</span>
+                        <span>예상 분량: 약 <strong id="estPages" style="color:#d32f2f;">0</strong>페이지</span>
+                    </div>
+                    <button type="button" id="applyBtn" onclick="applyPageCount()" style="width:100%; padding:10px; background:#555; color:white; border:none; border-radius:6px; cursor:pointer; font-size:16px; font-weight:600; transition: all 0.3s;">👆 이 분량(페이지)으로 적용하기</button>
+                    <p style="font-size:15px; color:#666; margin-top:8px;">* A4 1장당 약 1,500자(공백 포함) 기준으로 계산됩니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Q. 추가로 필요한 옵션이 있으신가요?</label>
             <div class="checkbox-group">
                 <label class="checkbox-card">
-                    <input type="checkbox" id="opt1" name="option_1" value="Yes" onchange="calculateTotal()">
-                    <span id="labelOpt1">⚡ 급행 작업 (빠른 마감)</span>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="optDeepEdit" name="opt_deep_edit" value="Yes" onchange="calculateTotal()">
+                        <span id="txtOptDeep">✍️ 심화 교정 (문장 다듬기) (페이지당 +9,000원)</span>
+                    </div>
+                    <span class="checkbox-desc" id="descOptDeep">비문 수정 및 문장 흐름 개선 (리라이팅 제외)</span>
                 </label>
                 <label class="checkbox-card">
-                    <input type="checkbox" id="opt2" name="option_2" value="Yes" onchange="calculateTotal()">
-                    <span id="labelOpt2">🎨 원본 파일 제공</span>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="optCover" name="opt_cover" value="Yes" onchange="calculateTotal()">
+                        <span id="txtOptCover">🎨 표지 디자인 [심플형] 추가 (+80,000원)</span>
+                    </div>
+                    <span class="checkbox-desc" id="descOptCover">상업용 폰트/이미지 활용 타이포그래피 작업</span>
                 </label>
                 <label class="checkbox-card">
-                    <input type="checkbox" id="opt3" name="option_3" value="Yes" onchange="calculateTotal()">
-                    <span id="labelOpt3">🔄 수정 횟수 추가</span>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="optSource" name="opt_source" value="Yes" onchange="calculateTotal()">
+                        <span id="txtOptSource">📄 소장용/인쇄용 PDF 변환 (+50,000원)</span>
+                    </div>
+                    <span class="checkbox-desc" id="descOptSource">편집/교정이 완료된 최종 원고를 가독성 좋게 변환 (저작권 걱정 없는 무료 폰트 사용)</span>
+                </label>
+                <label class="checkbox-card">
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="optOriginal" name="opt_original" value="Yes" onchange="calculateTotal()">
+                        <span id="txtOptOriginal">💾 원본 소스(HTML/CSS) 영구 소장 (+50,000원)</span>
+                    </div>
+                    <span class="checkbox-desc" id="descOptOriginal">작업자 부재 시 타 전문가가 수정할 수 있는 '마스터 파일' 제공 (보험용)</span>
+                </label>
+                <label class="checkbox-card">
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="optFast" name="opt_fast" value="Yes" onchange="calculateTotal()">
+                        <span id="txtOptFast">🚀 급행 작업 (비용 1.5배)</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group" style="background: #fff8e1; padding: 20px; border-radius: 8px; border: 1px solid #ffecb3;">
+            <label class="form-label" style="color:#f57f17;">⚠️ 작업 전 필수 확인사항 (체크)</label>
+            <div class="checkbox-group">
+                <label class="checkbox-card" style="border:none; background:none; padding:5px 0;">
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="chkEpubNature">
+                        <span style="font-size:14px;">EPUB은 디자인보다 <strong>가독성과 독자 편의성 위주</strong>의 파일임을 이해했습니다.</span>
+                    </div>
+                </label>
+                <label class="checkbox-card" style="border:none; background:none; padding:5px 0;">
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="chkViewerDiff">
+                        <span style="font-size:14px;">사용자의 뷰어(앱) 설정에 따라 <strong>레이아웃(줄바꿈 등)이 달라질 수 있음</strong>을 확인했습니다.</span>
+                    </div>
+                </label>
+                <label class="checkbox-card" style="border:none; background:none; padding:5px 0;">
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="chkRevision">
+                        <span style="font-size:14px;">시안 확정 후 <strong>전체 디자인 변경이나 대량의 원고 수정</strong>은 추가금이 발생할 수 있음을 확인했습니다.</span>
+                    </div>
                 </label>
             </div>
         </div>
 
         <div class="quote-box">
+            <div class="quote-row" style="border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 15px;">
+                <span>책 제목</span>
+                <span id="quoteTitleDisplay" style="font-weight: 700; color: #333;">(미입력)</span>
+            </div>
             <div class="quote-row">
                 <span>기본 작업비</span>
                 <span id="basePriceDisplay">0원</span>
             </div>
             <div class="quote-row">
-                <span>추가 수량 비용</span>
-                <span id="quantityPriceDisplay">0원</span>
+                <span>페이지 조정 (기본 50p 기준)</span>
+                <span id="pagePriceDisplay">0원</span>
             </div>
             <div class="quote-row">
-                <span>추가 옵션 합계</span>
+                <span>심화 교정 옵션</span>
+                <span id="deepEditPriceDisplay">0원</span>
+            </div>
+            <div class="quote-row">
+                <span>표지 디자인 [심플형]</span>
+                <span id="coverPriceDisplay">0원</span>
+            </div>
+            <div class="quote-row">
+                <span>PDF 변환 (소장용)</span>
                 <span id="optionPriceDisplay">0원</span>
+            </div>
+            <div class="quote-row">
+                <span>원본 소스 (마스터 파일)</span>
+                <span id="originalPriceDisplay">0원</span>
+            </div>
+            <div class="quote-row" id="expressRow" style="display:none; color:#d32f2f; font-weight:700;">
+                <span>⚡ 급행료 (1.5배 할증)</span>
+                <span id="expressPriceDisplay">0원</span>
             </div>
             <div class="quote-total">
                 <span>총 예상 견적</span>
                 <span class="total-price" id="totalPrice">0원</span>
             </div>
-            <p style="font-size:13px; color:#666; margin-top:10px; text-align:right;">* 부가세(VAT) 별도 금액입니다.</p>
+            <div class="quote-row" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color); color: #333;">
+                <span style="font-weight: 700; font-size: 16px;">📅 예상 작업 기간</span>
+                <span id="durationDisplay" style="font-weight: 700; color: #1a1a1a; font-size: 16px;">약 0일</span>
+            </div>
+            <p style="font-size:13px; color:#666; margin-top:10px; text-align:right;">* 실제 작업 난이도에 따라 협의 후 조정될 수 있습니다.</p>
         </div>
 
-        <button type="button" class="btn-submit" onclick="copyResult()">✅ 견적서 전송하기</button>
+        <p style="text-align: center; margin-top: 50px; margin-bottom: 15px; font-size: 15px; font-weight: 600; color: #4e342e;">
+            위의 견적내역을 다시 한 번 확인해주세요. 내용이 맞다면 전송버튼을 눌러주세요. 👇
+        </p>
+        <div class="btn-area" style="margin-top: 0;">
+            <button type="button" class="btn-submit" onclick="copyResult()">✅ 견적서 복사 및 전송하기</button>
+        </div>
     </div>
-    </form>
-</div>
+    </div>
 
-<!-- Admin Setup Modal (최초 접속 시) -->
-<div id="setupModal" class="modal-overlay" style="background: #2c3e50;">
-    <div class="modal-box" style="max-width: 450px; text-align: left;">
-        <h2 style="margin-top:0; color:#2c3e50;">⚙️ 나만의 견적서 만들기</h2>
-        <p style="font-size:14px; color:#666; margin-bottom:20px;">
-            구매하신 <strong>구글 시트 템플릿</strong>의 CSV 링크를 아래에 붙여넣으세요.<br>
-            고객님만의 전용 견적서 링크가 생성됩니다.
-        </p>
-        <label style="font-weight:700; font-size:13px; display:block; margin-bottom:5px;">구글 시트 CSV 링크</label>
-        <input type="text" id="adminSheetUrl" class="form-input" placeholder="https://docs.google.com/..." style="margin-bottom:15px;">
-        
-        <button class="btn-submit" onclick="createMyLink()">✨ 내 견적서 링크 생성하기</button>
-        <p style="font-size:12px; color:#888; margin-top:15px; text-align:center;">
-            * 이 기능은 '만능 자동 견적 키트' 구매자 전용입니다.
-        </p>
+    <div class="app-footer">
+        &copy; 2026. All rights reserved.<br>본 도구는 크몽(Kmong) 상담 및 거래 전용이며, 외부 직거래를 유도하지 않습니다.
     </div>
 </div>
 
 <!-- Modal -->
 <div id="resultModal" class="modal-overlay">
     <div class="modal-box">
-        <h3 style="margin:0 0 10px;">전송 준비 완료! 🎉</h3>
+        <h3 style="margin:0 0 10px;">견적서 복사 완료! 📋</h3>
         <p style="font-size:14px; color:#666; line-height: 1.6;">
-            견적 내용이 <strong>복사되었습니다.</strong><br>
-            확인 버튼을 누르면 <strong>문의하기 창</strong>으로 이동합니다.<br>
-            채팅창에 <strong>붙여넣기(Ctrl+V)</strong> 해주세요.
+            견적 내용이 클립보드에 <strong>복사되었습니다.</strong><br>
+            이제 <strong>크몽 서비스 페이지</strong>로 돌아가서<br>
+            <strong>[전문가에게 문의하기]</strong> 창에 내용을<br>
+            <strong>붙여넣고 전체 최종견적 내용을 확인 후 전송해주세요.</strong>
         </p>
-        <!-- ★ 판매 시 구매자의 크몽/오픈채팅 주소로 변경하라고 안내하세요 -->
-        <a href="https://kmong.com" target="_blank" class="modal-btn" style="display:block; text-decoration:none; box-sizing:border-box; text-align:center;" onclick="setTimeout(() => document.getElementById('resultModal').classList.remove('visible'), 300)">확인 (이동하기)</a>
+        <a href="https://kmong.com" target="_blank" class="modal-btn" style="display:block; text-decoration:none; box-sizing:border-box; text-align:center;" onclick="setTimeout(() => document.getElementById('resultModal').classList.remove('visible'), 300)">확인 (크몽으로 이동)</a>
     </div>
 </div>
 
 <script>
-    // 💰 기본 설정 (시트가 없을 때 보여줄 기본값)
+    // 💰 [가격표 수정하는 곳]
+    // 구글 시트가 귀찮으시면, 아래 숫자들을 직접 고쳐서 쓰시면 됩니다! (가장 빠르고 확실한 방법)
     let PRICES = {
-        SITE_TITLE: "🧮 자동 견적 계산기",
-        SITE_DESC: "원하시는 옵션을 선택하면 예상 견적을 즉시 확인하실 수 있습니다.",
-        
-        // 질문 텍스트 (새로 추가됨)
-        LBL_PROJECT: "Q. 프로젝트명 (또는 제목)",
-        LBL_CATEGORY: "Q. 의뢰 분야 / 업종",
-        LBL_LEVEL: "Q. 작업 유형 (난이도)",
-        LBL_QTY: "Q. 작업 수량 (단위: 개, 분, 페이지 등)",
-        LBL_OPTS: "Q. 추가 옵션 선택",
-        CATEGORY_OPTIONS: "디자인|영상 편집|IT 개발|문서/글쓰기|기타", // 기본값 (파이프 | 로 구분)
+        STANDARD: 150000,  // 텍스트 위주 기본금
+        DELUXE: 270000,    // 이미지/박스 위주 기본금
+        PREMIUM: 350000,   // 디자인 강화 기본금 (혜택 몰아주기)
+        PAGE_UNIT: {       // 등급별 페이지 추가금 (차등 적용)
+            STANDARD: 2000,
+            DELUXE: 3000,
+            PREMIUM: 4000
+        },
+        DEEP_EDIT_UNIT: 9000,// 심화 교정 비용 (페이지당)
+        COVER_PRICE: 80000,// 표지 디자인 비용
+        PDF_PRICE: 50000,  // PDF 변환 비용
 
-        STANDARD: 50000,   // 기본형 가격
-        DELUXE: 100000,    // 고급형 가격
-        PREMIUM: 200000,   // 프리미엄 가격
-        
-        LEVEL1_NAME: "STANDARD (기본형)",
-        LEVEL2_NAME: "DELUXE (고급형)",
-        LEVEL3_NAME: "PREMIUM (프리미엄)",
-        
-        UNIT_PRICE: 5000,  // 수량 1개당 추가금 (예: 1분당, 1페이지당)
-        BASIC_QUANTITY: 1, // 기본 제공 수량 (이 수량까지는 추가금 없음)
-
-        OPT1_PRICE: 30000, // 옵션1 (급행) 가격
-        OPT2_PRICE: 50000, // 옵션2 (원본) 가격
-        OPT3_PRICE: 10000, // 옵션3 (수정) 가격
-        
-        OPT1_NAME: "⚡ 급행 작업 (빠른 마감)",
-        OPT2_NAME: "🎨 원본 파일 제공",
-        OPT3_NAME: "🔄 수정 횟수 추가"
+        // 📝 [텍스트 설정] 엑셀에서 문구도 수정 가능하게 추가
+        OPT_DEEP_NAME: "✍️ 심화 교정 (문장 다듬기)",
+        OPT_DEEP_DESC: "비문 수정 및 문장 흐름 개선 (리라이팅 제외)",
+        OPT_COVER_NAME: "🎨 표지 디자인 [심플형] 추가",
+        OPT_COVER_DESC: "상업용 폰트/이미지 활용 타이포그래피 작업",
+        OPT_FAST_NAME: "🚀 급행 작업",
+        OPT_SOURCE_NAME: "📄 소장용/인쇄용 PDF 변환",
+        OPT_SOURCE_DESC: "편집/교정이 완료된 최종 원고를 가독성 좋게 변환 (저작권 걱정 없는 무료 폰트 사용)",
+        ORIGINAL_PRICE: 50000, // 원본 제공 비용 (3만 -> 5만 인상)
+        OPT_ORIGINAL_NAME: "💾 원본 소스(HTML/CSS) 영구 소장",
+        OPT_ORIGINAL_DESC: "작업자 부재 시 타 전문가가 수정할 수 있는 '마스터 파일' 제공 (보험용)"
     };
 
-    // ☁️ [설정] 여기에 구글 시트 CSV 주소를 넣으세요!
-    // 예시: "https://docs.google.com/spreadsheets/d/e/.../pub?output=csv"
-    const FIXED_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHyolsuOcpGvxjt9iP2In0sAOWye-rY4OwSKLT9U9fYLvC1BV1fl5kuA11WadBEeHhlTIAbCQ0-ffH/pub?gid=0&single=true&output=csv"; // ← 여기에 주소 붙여넣기 필수!
-
-    // URL 파라미터가 있으면 그걸 쓰고, 없으면 위에서 설정한 주소를 씁니다.
-    const urlParams = new URLSearchParams(window.location.search);
-    let SHEET_URL = urlParams.get('config') || FIXED_SHEET_URL;
+    // ☁️ [구글 스프레드시트 연동] 엑셀로 가격 관리하기
+    // 사용법: 구글 시트에 가격표를 만들고 '웹에 게시(CSV)'한 링크를 아래에 넣으세요.
+    // 링크가 비어있으면 위쪽 기본 설정(PRICES)을 사용합니다. (안 쓰시면 비워두세요)
+    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSIc2WJ5y72yLS9WzyIJzcLX-I02bRrO4IrCA-xM0n_jhGGolEA-6ubzoroB4YybiA1tkDksQxoxiIi/pub?gid=0&single=true&output=csv"; // "https://docs.google.com/spreadsheets/..." (연동 해제됨: 이제 위쪽 PRICES 설정이 적용됩니다)
 
     async function loadPricesFromSheet() {
-        // 1. 시트 주소가 없으면 -> 기본값으로 화면만 그리고 끝냄 (팝업 안 띄움)
-        if (!SHEET_URL) {
-            console.log("설정된 시트 주소가 없습니다. 기본값으로 실행합니다.");
-            updateUI();
-            calculateTotal();
+        console.log("🔄 구글 시트 연동 시도 중..."); // [확인용] 함수가 실행되는지 체크
+
+        // 링크가 없거나, 아직 "여기에..." 문구가 남아있으면 실행하지 않음 (기본값 사용)
+        if (!SHEET_URL || SHEET_URL.includes("여기에")) {
+            console.log("ℹ️ 시트 링크가 비어있거나 설정되지 않았습니다. (기본 가격표 사용)");
             return;
         }
-
-        // 2. 시트 데이터 가져오기
         try {
-            // [안전장치] URL 형식이 맞는지 먼저 확인 (http로 시작하는지)
-            if (!SHEET_URL.startsWith("http")) {
-                console.error("🚨 잘못된 URL 형식입니다:", SHEET_URL);
-                return;
-            }
-
-            // 2. 데이터 가져오기 (캐시 방지 적용)
-            const noCacheUrl = SHEET_URL + (SHEET_URL.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
-            const response = await fetch(noCacheUrl);
-            const text = await response.text();
+            // [수정] 캐시 방지 강화: URL 파라미터 + fetch 옵션 동시 적용
+            const timestamp = new Date().getTime();
+            const noCacheUrl = SHEET_URL + (SHEET_URL.includes('?') ? '&' : '?') + 't=' + timestamp;
             
+            const response = await fetch(noCacheUrl, { cache: 'no-store' });
+            const text = await response.text();
+
             // [안전장치] CSV가 아니라 일반 웹페이지 링크를 넣었는지 확인
             if (text.includes("<!DOCTYPE html>") || text.includes("<html")) {
-                alert("🚨 오류: 올바른 CSV 링크가 아닙니다. '웹에 게시' 설정을 확인해주세요.");
+                console.error("🚨 오류: CSV 링크가 아닙니다! '웹에 게시'에서 '쉼표로 구분된 값(.csv)'을 선택했는지 확인하세요.");
                 return;
             }
 
-            // [수정] 3. 데이터 파싱 업그레이드 (설명 컬럼 무시 기능 추가)
+            // [수정] CSV 파싱 로직 업그레이드 (쉼표, 따옴표, 텍스트 처리 강화)
             const rows = text.split('\n');
             
             rows.forEach(row => {
                 // 정규식으로 CSV 파싱 (따옴표 안의 쉼표는 유지하고, 컬럼만 나눔)
                 const parts = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                
-                if (parts.length < 2) return; // 데이터가 없으면 패스
+                if (parts.length < 2) return;
 
                 const cleanKey = parts[0].trim().replace(/^"|"$/g, '');   // A열: 키
-                let cleanVal = parts[1].trim().replace(/^"|"$/g, '').replace(/""/g, '"'); // B열: 값 (C열 설명은 무시됨)
+                let cleanVal = parts[1].trim().replace(/^"|"$/g, '').replace(/""/g, '"'); // B열: 값
                 
-                // 숫자인지 텍스트인지 구별해서 저장
-                if (cleanKey.includes("NAME") || cleanKey.includes("TITLE") || cleanKey.includes("DESC") || cleanKey.includes("LBL") || cleanKey.includes("CATEGORY")) {
-                    PRICES[cleanKey] = cleanVal;
-                } else {
-                    // [안전장치] 값이 문자가 아닐 경우를 대비해 String()으로 변환 후 처리
-                    const num = parseInt(String(cleanVal).replace(/[^0-9]/g, ''));
-                    if (!isNaN(num)) PRICES[cleanKey] = num;
+                // 페이지 단가 처리 (PAGE_UNIT_STANDARD 등)
+                if (cleanKey.startsWith('PAGE_UNIT_')) {
+                    const type = cleanKey.replace('PAGE_UNIT_', '');
+                    const num = parseInt(cleanVal.replace(/[^0-9]/g, ''));
+                    if (!isNaN(num) && PRICES.PAGE_UNIT[type] !== undefined) PRICES.PAGE_UNIT[type] = num;
+                } else if (PRICES[cleanKey] !== undefined) {
+                    // 기존 값이 숫자면 숫자로 변환, 아니면 문자로 저장
+                    if (typeof PRICES[cleanKey] === 'number') {
+                        const num = parseInt(cleanVal.replace(/[^0-9]/g, ''));
+                        if (!isNaN(num)) PRICES[cleanKey] = num;
+                    } else {
+                        PRICES[cleanKey] = cleanVal;
+                    }
                 }
             });
+            console.log("✅ 구글 시트 가격표 적용 완료");
             
+            // [추가] 화면의 텍스트도 엑셀 내용으로 업데이트
+            updateUITexts();
+            calculateTotal(); // 가격 갱신 후 재계산
         } catch (e) {
-            console.error("시트 연동 실패 (기본값 사용):", e);
-            // 주소가 있는데 실패한 경우에만 알림
-            if (SHEET_URL) {
-                // alert("⚠️ 시트 연동 실패: " + e.message); // 너무 자주 뜨면 주석 처리하세요
-            }
+            console.log("⚠️ 구글 시트 로딩 실패 (기본값 사용):", e);
         }
-
-        // 4. 화면 업데이트 (성공하든 실패하든 무조건 실행 -> 드롭다운 먹통 방지)
-        updateUI();
-        calculateTotal();
     }
 
-    function updateUI() {
-        // 제목 및 설명
-        document.getElementById('uiTitle').innerText = PRICES.SITE_TITLE;
-        document.getElementById('uiDesc').innerText = PRICES.SITE_DESC;
-
-        // 질문 라벨 (새로 추가됨)
-        document.getElementById('lblProject').innerText = PRICES.LBL_PROJECT;
-        document.getElementById('lblCategory').innerText = PRICES.LBL_CATEGORY;
-        document.getElementById('lblLevel').innerText = PRICES.LBL_LEVEL;
-        document.getElementById('lblQty').innerText = PRICES.LBL_QTY;
-        document.getElementById('lblOpts').innerText = PRICES.LBL_OPTS;
-
-        // 카테고리 목록 업데이트 (파이프 | 로 구분된 텍스트를 목록으로 변환)
-        const catSelect = document.getElementById('category');
-        if (PRICES.CATEGORY_OPTIONS && catSelect) {
-            catSelect.innerHTML = '<option value="" selected disabled hidden>선택해주세요</option>';
-            const opts = String(PRICES.CATEGORY_OPTIONS).split('|');
-            opts.forEach(opt => {
-                // [수정] 빈 칸이 생기지 않도록 내용이 있을 때만 추가
-                const val = opt.trim();
-                if (val) {
-                    const option = document.createElement('option');
-                    option.value = val;
-                    option.innerText = val;
-                    catSelect.appendChild(option);
-                }
-            });
-        }
+    // [새 기능] 화면의 옵션 이름과 설명을 엑셀 데이터로 변경
+    function updateUITexts() {
+        // 심화 교정
+        document.getElementById('txtOptDeep').innerText = `${PRICES.OPT_DEEP_NAME} (페이지당 +${PRICES.DEEP_EDIT_UNIT.toLocaleString()}원)`;
+        document.getElementById('descOptDeep').innerText = PRICES.OPT_DEEP_DESC;
         
-        // 등급 이름
-        document.getElementById('optLevel1').innerText = PRICES.LEVEL1_NAME;
-        document.getElementById('optLevel2').innerText = PRICES.LEVEL2_NAME;
-        document.getElementById('optLevel3').innerText = PRICES.LEVEL3_NAME;
+        // 표지 디자인
+        document.getElementById('txtOptCover').innerText = `${PRICES.OPT_COVER_NAME} (+${PRICES.COVER_PRICE.toLocaleString()}원)`;
+        document.getElementById('descOptCover').innerText = PRICES.OPT_COVER_DESC;
         
-        // 옵션 이름
-        document.getElementById('labelOpt1').innerText = PRICES.OPT1_NAME;
-        document.getElementById('labelOpt2').innerText = PRICES.OPT2_NAME;
-        document.getElementById('labelOpt3').innerText = PRICES.OPT3_NAME;
+        // 급행 작업
+        document.getElementById('txtOptFast').innerText = `${PRICES.OPT_FAST_NAME} (비용 1.5배)`;
+        
+        // PDF 변환
+        document.getElementById('txtOptSource').innerText = `${PRICES.OPT_SOURCE_NAME} (+${PRICES.PDF_PRICE.toLocaleString()}원)`;
+        document.getElementById('descOptSource').innerText = PRICES.OPT_SOURCE_DESC;
+
+        // 원본 제공
+        document.getElementById('txtOptOriginal').innerText = `${PRICES.OPT_ORIGINAL_NAME} (+${PRICES.ORIGINAL_PRICE.toLocaleString()}원)`;
+        document.getElementById('descOptOriginal').innerText = PRICES.OPT_ORIGINAL_DESC;
     }
 
-    function createMyLink() {
-        const inputUrl = document.getElementById('adminSheetUrl').value;
-        if (!inputUrl || !inputUrl.includes("http")) {
-            alert("올바른 구글 시트 CSV 링크를 입력해주세요.");
-            return;
+    // 🎨 [스타일별 추천 컬러 팔레트]
+    const STYLE_PALETTES = {
+        '심플/미니멀': ['#212529', '#adb5bd', '#495057'],   // 모노톤 (다크그레이/라이트그레이)
+        '비즈니스/신뢰': ['#1565c0', '#90caf9', '#0d47a1'], // 블루톤 (신뢰감)
+        '감성/에세이': ['#795548', '#d7ccc8', '#8d6e63'],   // 브라운톤 (따뜻함)
+        '열정/자기계발': ['#d84315', '#ffcc80', '#bf360c'], // 오렌지톤 (에너지)
+        '자연/힐링': ['#2e7d32', '#c8e6c9', '#1b5e20']      // 그린톤 (편안함)
+    };
+
+    function applyStyleColors() {
+        const style = document.getElementById('style').value;
+        const colors = STYLE_PALETTES[style];
+        if (colors) {
+            document.getElementById('mainColor').value = colors[0];
+            document.getElementById('subColor').value = colors[1];
+            document.getElementById('accentColor').value = colors[2];
+            updatePreview(); // 미리보기 즉시 갱신
         }
-        // 현재 페이지 URL에 config 파라미터 추가해서 이동
-        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?config=" + encodeURIComponent(inputUrl);
-        
-        // 클립보드 복사 후 이동
-        navigator.clipboard.writeText(newUrl).then(() => {
-            alert("✨ 링크가 생성되었습니다!\n클립보드에 복사되었으니 주소창에 붙여넣어 확인해보세요.");
-            window.location.href = newUrl;
-        });
     }
 
     function openTab(tabName) {
@@ -398,100 +709,484 @@
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(tabName).classList.add('active');
         
-        // 탭 버튼 활성화 스타일
-        const index = tabName === 'tab1' ? 0 : 1;
-        document.querySelectorAll('.tab-btn')[index].classList.add('active');
+        // 탭 버튼 찾기 및 활성화
+        const targetBtn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+        if (targetBtn) {
+            targetBtn.classList.add('active');
+            moveTabLine(targetBtn);
+        }
+        
+        // 탭 전환 시 데이터 동기화
+        const title = document.getElementById('title').value;
+        if (tabName === 'tab2') {
+            // 디자인 탭: 제목 미리보기에 반영
+            if(title.trim()) document.getElementById('prevTitle').innerText = title;
+        } else if (tabName === 'tab3') {
+            // 견적 탭: 제목 및 계산 업데이트
+            calculateTotal();
+        }
+    }
+
+    function toggleCounter() {
+        const box = document.getElementById('counterBox');
+        const arrow = document.getElementById('counterArrow');
+        box.classList.toggle('active');
+        arrow.classList.toggle('active');
+    }
+
+    function countChars() {
+        const text = document.getElementById('textSource').value;
+        const length = text.length;
+        document.getElementById('charCountWithSpace').innerText = length.toLocaleString();
+        
+        // A4 1장 = 약 1500자 기준 (일반적인 단행본 원고 기준)
+        const estimated = Math.ceil(length / 1500);
+        document.getElementById('estPages').innerText = estimated;
+
+        // 버튼 활성화 효과 (글자가 입력되면 색상 변경)
+        const btn = document.getElementById('applyBtn');
+        if (length > 0) {
+            btn.style.backgroundColor = '#5e35b1'; // 브랜드 컬러로 변경
+            btn.style.boxShadow = '0 4px 12px rgba(94, 53, 177, 0.3)';
+            btn.innerText = `👆 약 ${estimated}페이지로 적용하기 (클릭)`;
+        } else {
+            btn.style.backgroundColor = '#555';
+            btn.style.boxShadow = 'none';
+            btn.innerText = '👆 이 분량(페이지)으로 적용하기';
+        }
+    }
+
+    function applyPageCount() {
+        const est = document.getElementById('estPages').innerText;
+        if(est == '0') return;
+        document.getElementById('pageCount').value = est;
+        calculateTotal();
+        alert(`약 ${est}페이지로 적용되었습니다.`);
+    }
+
+    function showProofreadingInfo() {
+        const status = document.getElementById('status').value;
+        const infoBox = document.getElementById('proofreadingInfo');
+        
+        // 입력 차단을 위한 버튼 선택
+        const nextBtn = document.querySelector('#tab1 .btn-next');
+        const tab2Btn = document.querySelector('.tab-btn[data-tab="tab2"]');
+        const tab3Btn = document.querySelector('.tab-btn[data-tab="tab3"]');
+
+        if (status.includes('네, 완료되었습니다')) {
+            infoBox.style.display = 'block';
+            
+            // 진행 허용 (버튼 활성화)
+            nextBtn.disabled = false;
+            nextBtn.style.opacity = '1';
+            nextBtn.style.cursor = 'pointer';
+            nextBtn.innerText = "다음: 디자인 선택 👉";
+            
+            tab2Btn.disabled = false;
+            tab3Btn.disabled = false;
+            tab2Btn.style.opacity = '1';
+            tab3Btn.style.opacity = '1';
+            tab2Btn.style.cursor = 'pointer';
+            tab3Btn.style.cursor = 'pointer';
+        } else {
+            infoBox.style.display = 'none';
+            if (status === '아니오, 아직 완료전입니다') {
+                alert('교정 완료시 다시 문의 부탁드립니다.');
+                
+                // 진행 차단 (버튼 비활성화)
+                nextBtn.disabled = true;
+                nextBtn.style.opacity = '0.3';
+                nextBtn.style.cursor = 'not-allowed';
+                nextBtn.innerText = "⛔ 교정 완료 후 진행 가능합니다";
+                
+                tab2Btn.disabled = true;
+                tab3Btn.disabled = true;
+                tab2Btn.style.opacity = '0.5';
+                tab3Btn.style.opacity = '0.5';
+                tab2Btn.style.cursor = 'not-allowed';
+                tab3Btn.style.cursor = 'not-allowed';
+            }
+        }
+    }
+
+    function moveTabLine(btn) {
+        const line = document.querySelector('.tab-line');
+        if (line && btn) {
+            line.style.width = btn.offsetWidth + 'px';
+            line.style.left = btn.offsetLeft + 'px';
+        }
+    }
+
+    // [추가] 퀵 피커와 메인 피커 양방향 동기화 함수
+    function syncColors(type, val) {
+        // 1. 원본(큰) 피커 값 변경
+        document.getElementById(type + 'Color').value = val;
+        // 2. 미리보기 갱신 (updatePreview 내부에서 퀵 피커도 같이 맞춰줌)
+        updatePreview();
+    }
+
+    function updatePreview() {
+        const main = document.getElementById('mainColor').value;
+        const sub = document.getElementById('subColor').value;
+        const accent = document.getElementById('accentColor').value;
+
+        // Elements
+        const numEl = document.getElementById('prevNum');
+        const titleEl = document.getElementById('prevTitle');
+        const lineEl = document.getElementById('prevLine');
+        const iconEl = document.getElementById('prevIcon');
+        const quoteEl = document.getElementById('prevQuote');
+        const bodyEl = document.querySelector('.preview-box .body-text');
+
+        // Apply Colors
+        numEl.style.color = accent;
+        titleEl.style.color = main;
+        lineEl.style.backgroundColor = sub;
+        iconEl.style.color = sub;
+        quoteEl.style.color = sub;
+
+        // Custom Text Logic
+        const rawText = document.getElementById('customText').value.trim();
+
+        if (rawText) {
+            const lines = rawText.split('\n').filter(line => line.trim() !== '');
+            
+            // 1. Title (First Line)
+            if (lines.length > 0) titleEl.innerText = lines[0];
+
+            // 2. Body & Quotes (Rest)
+            if (lines.length > 1) {
+                let htmlContent = '';
+                
+                // 두 번째 줄부터 한 줄씩 검사
+                for (let i = 1; i < lines.length; i++) {
+                    let line = lines[i].trim();
+                    
+                    // [소제목 감지 로직] 수정: 시(Poem) 오인 방지 (길이 체크 삭제, 명확한 기호만 인정)
+                    const isSubheading = /^(#|■|□|◈|◇|●|○|Chapter|Part|Section|Prologue|Epilogue|\d+\.|\[|<)/i.test(line);
+
+                    if (isSubheading) {
+                        htmlContent += `<h3 style="color:${accent}; font-size:17px; margin:25px 0 10px 0; font-weight:700; line-height:1.4;">${line}</h3>`;
+                    } else {
+                        // [수정] 본문: 따옴표 로직 제거, 단순 출력
+                        htmlContent += `<p style="margin-bottom:15px;">${line}</p>`;
+                    }
+                }
+                bodyEl.innerHTML = htmlContent;
+                
+                quoteEl.style.display = 'none';
+                iconEl.style.display = 'none';
+            }
+        } else {
+            // Default Mode
+            titleEl.innerHTML = "성공하는 사람들의<br>아주 작은 습관";
+            quoteEl.style.display = 'block';
+            iconEl.style.display = 'block';
+            quoteEl.innerText = '"습관은 복리로 작용한다."';
+            bodyEl.innerText = "우리는 흔히 거창한 목표만이 인생을 바꾼다고 생각합니다. 하지만 실제로 삶을 변화시키는 것은 매일 반복되는 사소한 행동들입니다.";
+        }
+
+        // [추가] 퀵 피커 값 동기화 (스타일 변경이나 상단 피커 조작 시 하단 퀵 피커도 같이 변경)
+        if(document.getElementById('quickMain')) {
+            document.getElementById('quickMain').value = main;
+            document.getElementById('quickSub').value = sub;
+            document.getElementById('quickAccent').value = accent;
+        }
     }
 
     function calculateTotal() {
         const level = document.getElementById('serviceLevel').value;
-        if (!level) return;
+        
+        // [수정] 등급이 선택되지 않았으면 0원으로 초기화
+        if (!level) {
+            // 가격 관련 필드만 0으로 리셋
+            document.getElementById('basePriceDisplay').innerText = '0원';
+            document.getElementById('pagePriceDisplay').innerText = '0원';
+            document.getElementById('pagePriceDisplay').style.color = '#333';
+            document.getElementById('deepEditPriceDisplay').innerText = '0원';
+            document.getElementById('coverPriceDisplay').innerText = '0원';
+            document.getElementById('optionPriceDisplay').innerText = '0원';
+            document.getElementById('originalPriceDisplay').innerText = '0원';
+            document.getElementById('expressRow').style.display = 'none';
+            document.getElementById('totalPrice').innerText = '0원';
+            document.getElementById('durationDisplay').innerText = '약 0일';
 
-        const qty = parseInt(document.getElementById('quantity').value) || 1;
-        const isOpt1 = document.getElementById('opt1').checked;
-        const isOpt2 = document.getElementById('opt2').checked;
-        const isOpt3 = document.getElementById('opt3').checked;
+            // 페이지 계산은 계속 수행
+            const pages = parseInt(document.getElementById('pageCount').value) || 0;
+            const calcPages = (pages < 10) ? 10 : pages; // 최소 10페이지로 계산 고정
+            const diffPages = calcPages - 50;
+
+            const msgBox = document.getElementById('pageMsg');
+            if (pages < 10) {
+                msgBox.innerHTML = `<span style='color:#d32f2f;'>⚠️ 전자책 제작 최소 분량은 10페이지 이상을 권장합니다.</span>`;
+            } else if (diffPages > 0) {
+                msgBox.innerHTML = `<span style='color:#d32f2f;'>⚠️ 기본 50p 초과! (${diffPages}장 추가)</span>`;
+            } else if (diffPages < 0) {
+                msgBox.innerHTML = `<span style='color:#1565c0;'>📉 기본 50p 미만! (${Math.abs(diffPages)}장 할인 대상)</span>`;
+            } else {
+                msgBox.innerHTML = "<span style='color:#28a745;'>✅ 기본 제공 범위 내입니다.</span>";
+            }
+            
+            // 라벨 초기화
+            const quoteRowLabel = document.getElementById('pagePriceDisplay').previousElementSibling;
+            quoteRowLabel.innerText = "페이지 조정 (기본 50p 기준)";
+
+            return 0;
+        }
+
+        const pages = parseInt(document.getElementById('pageCount').value) || 0;
+        const isDeepEdit = document.getElementById('optDeepEdit').checked;
+        const isCover = document.getElementById('optCover').checked;
+        const isFast = document.getElementById('optFast').checked;
+        const isSource = document.getElementById('optSource').checked;
+        const isOriginal = document.getElementById('optOriginal').checked;
+
+        // 책 제목 업데이트
+        const title = document.getElementById('title').value;
+        document.getElementById('quoteTitleDisplay').innerText = title || '(미입력)';
+
+        // 이미지 배치 안내 문구 표시 (STANDARD가 아닐 때)
+        const notice = document.getElementById('layoutNotice');
+        if (level === 'STANDARD') {
+            notice.style.display = 'none';
+        } else {
+            notice.style.display = 'block';
+        }
 
         // 1. 기본금
         let base = PRICES[level];
+        
+        // 2. 페이지 추가/할인 계산 (등급별 단가 적용)
+        let unitPrice = PRICES.PAGE_UNIT[level];
+        let calcPages = (pages < 10) ? 10 : pages; // 최소 10페이지로 계산 고정
+        let diffPages = calcPages - 50;
+        let pageCost = diffPages * unitPrice;
 
-        // 2. 추가 수량 비용
-        let extraQty = Math.max(0, qty - PRICES.BASIC_QUANTITY);
-        let qtyCost = extraQty * PRICES.UNIT_PRICE;
+        // 안내 문구 업데이트
+        document.getElementById('pageHelpText').innerText = `* A4 원고 기준 (기본 50p, 대략 75,000자 분량 제공 / ${level} 등급 증감 장당 ${unitPrice.toLocaleString()}원)`;
 
-        // 3. 옵션 비용
-        let optCost = 0;
-        if (isOpt1) optCost += PRICES.OPT1_PRICE;
-        if (isOpt2) optCost += PRICES.OPT2_PRICE;
-        if (isOpt3) optCost += PRICES.OPT3_PRICE;
+        // 페이지 수 안내 메시지 & 견적서 라벨 표시
+        const msgBox = document.getElementById('pageMsg');
+        const quoteRowLabel = document.getElementById('pagePriceDisplay').previousElementSibling;
+        const quotePriceDisplay = document.getElementById('pagePriceDisplay');
 
-        let total = base + qtyCost + optCost;
+        if (diffPages > 0) {
+            // 추가금
+            msgBox.innerHTML = `<span style='color:#d32f2f;'>⚠️ 기본 50p 초과! (+${diffPages}장 x ${unitPrice.toLocaleString()}원)</span>`;
+            quoteRowLabel.innerText = `페이지 추가금 (기본 50p 초과 ${diffPages}p)`;
+            quotePriceDisplay.style.color = '#d32f2f';
+            quotePriceDisplay.innerText = '+' + pageCost.toLocaleString() + '원';
+        } else if (diffPages < 0) {
+            // 할인
+            let discountPages = Math.abs(diffPages);
+            let discountAmount = Math.abs(pageCost);
+            
+            // [수정] 계산 메시지 우선 표시 (경고는 뒤에 덧붙임)
+            let msgHtml = `<span style='color:#1565c0; font-weight:700;'>📉 기본 50p 미만! (-${discountPages}장 x ${unitPrice.toLocaleString()}원 할인)</span>`;
+            
+            if (pages < 10) {
+                msgHtml += ` <span style='color:#d32f2f; font-size:13px;'>(⚠️ 최소 10p 권장)</span>`;
+            }
+            msgBox.innerHTML = msgHtml;
+            
+            quoteRowLabel.innerText = `페이지 할인 (기본 50p 미만 ${discountPages}p)`;
+            quotePriceDisplay.style.color = '#1565c0';
+            quotePriceDisplay.innerText = '-' + discountAmount.toLocaleString() + '원';
+        } else {
+            // 변동 없음
+            msgBox.innerHTML = "<span style='color:#28a745;'>✅ 기본 제공 범위 내입니다. (변동 없음)</span>";
+            quoteRowLabel.innerText = `페이지 조정 (기본 50p 기준)`;
+            quotePriceDisplay.style.color = '#333';
+            quotePriceDisplay.innerText = '0원';
+        }
+
+        // 3. 교정 옵션 비용
+        let deepEditCost = isDeepEdit ? (pages * PRICES.DEEP_EDIT_UNIT) : 0;
+
+        // 4. 표지 비용
+        let coverCost = isCover ? PRICES.COVER_PRICE : 0;
+
+        // 5. 기타 옵션 비용
+        let pdfCost = isSource ? PRICES.PDF_PRICE : 0;
+        let originalCost = isOriginal ? PRICES.ORIGINAL_PRICE : 0;
+
+        // 6. 합계 및 급행 할증 계산
+        let preTotal = base + pageCost + deepEditCost + coverCost + pdfCost + originalCost;
+        let expressFee = 0;
+        if (isFast) {
+            expressFee = Math.round(preTotal * 0.5);
+        }
+        let finalTotal = preTotal + expressFee;
 
         // 화면 표시
         document.getElementById('basePriceDisplay').innerText = base.toLocaleString() + '원';
-        document.getElementById('quantityPriceDisplay').innerText = qtyCost.toLocaleString() + '원';
-        document.getElementById('optionPriceDisplay').innerText = optCost.toLocaleString() + '원';
-        document.getElementById('totalPrice').innerText = total.toLocaleString() + '원';
+        document.getElementById('deepEditPriceDisplay').innerText = deepEditCost.toLocaleString() + '원';
+        document.getElementById('coverPriceDisplay').innerText = coverCost.toLocaleString() + '원';
+        
+        // PDF 옵션 표시
+        document.getElementById('optionPriceDisplay').innerText = pdfCost.toLocaleString() + '원';
+        document.getElementById('originalPriceDisplay').innerText = originalCost.toLocaleString() + '원';
+        
+        // 급행료 별도 표시
+        const expressRow = document.getElementById('expressRow');
+        if (isFast) {
+            expressRow.style.display = 'flex';
+            document.getElementById('expressPriceDisplay').innerText = expressFee.toLocaleString() + '원';
+        } else {
+            expressRow.style.display = 'none';
+        }
 
-        return total;
+        document.getElementById('totalPrice').innerText = finalTotal.toLocaleString() + '원';
+
+        // 📅 [기간 계산 로직]
+        // 1. 기본 제작 기간 (등급별 기본일 + 50페이지 초과 시 25페이지당 1일 추가)
+        let baseDays = 3; // STANDARD
+        if (level === 'DELUXE') baseDays = 5;
+        if (level === 'PREMIUM') baseDays = 7;
+        
+        // 기본 50페이지까지는 추가 기간 없음. 초과분에 대해서만 계산.
+        let extraDays = 0;
+        if (pages > 50) {
+            extraDays = Math.ceil((pages - 50) / 25);
+        }
+        
+        let days = baseDays + extraDays;
+        
+        // 2. 심화 교정: 20페이지당 1일 추가 (수십 번 반복 검수 필요)
+        if (isDeepEdit) days += Math.ceil(pages / 20);
+        
+        // 3. 표지 디자인: 2일 추가 (단가 10만원 반영, 시안 작업 시간 확보)
+        if (isCover) days += 2;
+
+        // 4. 급행 옵션: 기간 30% 단축 (너무 팍 줄지 않게 조정)
+        if (isFast) {
+            days = Math.ceil(days * 0.7);
+            if (days < 2) days = 2;
+        }
+
+        document.getElementById('durationDisplay').innerText = `약 ${days}일`;
+
+        return finalTotal; // 전송용 반환
     }
 
-function copyResult() {
-        // 1. 화면의 입력값들 수집
-        const title = document.getElementById('projectTitle').value || '(미입력)';
-        const category = document.getElementById('category').value || '(미선택)';
-        const level = document.getElementById('serviceLevel').value || '(미선택)';
-        const qty = document.getElementById('quantity').value;
-        const total = document.getElementById('totalPrice').innerText;
+    function copyResult() {
+        // 필수 체크박스 확인
+        if (!document.getElementById('chkEpubNature').checked || 
+            !document.getElementById('chkViewerDiff').checked || 
+            !document.getElementById('chkRevision').checked) {
+            alert("⚠️ [작업 전 필수 확인사항]에 모두 체크해주셔야 견적서 전송이 가능합니다.");
+            return;
+        }
 
+        // 1. [구글 시트 전송] - 위에서 새로 만든 앱 스크립트 URL을 여기에 붙여넣으세요.
+        const scriptURL = "https://script.google.com/macros/s/AKfycbxB5_YsvzS5pxKVoDEmSQ2VBx1oyJzrXGWnn0hmm14XX6y41DkvKVVEMRfdvzMt_cJ4jQ/exec"; 
+
+        const title = document.getElementById('title').value || '(미입력)';
+        const category = document.getElementById('category').value || '(미선택)';
+        const manuscriptType = document.getElementById('manuscriptType').value || '(미선택)';
+        const status = document.getElementById('status').value || '(미선택)';
+        const pages = document.getElementById('pageCount').value;
+        const style = document.getElementById('style').value;
+        const mainColor = document.getElementById('mainColor').value;
+        const subColor = document.getElementById('subColor').value;
+        const accentColor = document.getElementById('accentColor').value;
+        const ref = document.getElementById('ref').value || '(없음)';
+        
+        const level = document.getElementById('serviceLevel').value;
+        const total = document.getElementById('totalPrice').innerText;
+        const duration = document.getElementById('durationDisplay').innerText;
+        
         const opts = [];
-        if(document.getElementById('opt1').checked) opts.push(PRICES.OPT1_NAME);
-        if(document.getElementById('opt2').checked) opts.push(PRICES.OPT2_NAME);
-        if(document.getElementById('opt3').checked) opts.push(PRICES.OPT3_NAME);
+        if(document.getElementById('optDeepEdit').checked) opts.push("✍️ 심화 교정 추가");
+        if(document.getElementById('optCover').checked) opts.push("🎨 표지 디자인 [심플형] 추가");
+        if(document.getElementById('optSource').checked) opts.push("📄 PDF 변환 추가");
+        if(document.getElementById('optOriginal').checked) opts.push("💾 원본 소스(마스터 파일) 제공");
+        if(document.getElementById('optFast').checked) opts.push("🚀 급행 작업");
         const optText = opts.length > 0 ? opts.join(', ') : '없음';
 
-        // 2. [구글 시트 전송] - 작가님의 '비밀 통로' 주소
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbwYQ3o9Sd7igQvkElR2nkoK0pnrXtxC0_0cydp9FXK5ObjKftSIV0S2_8fWbb7M7IgfYQ/exec'; 
-        
+        const clipboardText = `📋 [EPUB 제작 의뢰 및 자동견적서]
+
+1️⃣ 책 정보
+- 제목: ${title}
+- 카테고리: ${category}
+- 원고 종류: ${manuscriptType}
+- 상태: ${status}
+- 분량: ${pages}페이지
+
+2️⃣ 디자인
+- 스타일: ${style}
+- 컬러(1/2/3순위): ${mainColor} / ${subColor} / ${accentColor}
+- 레퍼런스: ${ref}
+
+3️⃣ 견적 확인
+- 등급: ${level}
+- 추가 옵션: ${optText}
+💰 예상 견적: ${total}
+📅 예상 기간: ${duration}
+
+위의 견적내역을 다시 한 번 확인해주세요. 내용이 맞다면 전송버튼을 눌러주세요.
+
+추가 문의사항: _________________`;
+
+        // 2. [시트로 보낼 데이터 정리]
         const params = new URLSearchParams();
-        params.append('project_title', title);
+        params.append('title', title);
         params.append('category', category);
-        params.append('service_level', level);
-        params.append('quantity', qty);
-        params.append('option_summary', optText);
-        params.append('total_estimate', total);
+        params.append('manuscriptType', manuscriptType);
+        params.append('status', status);
+        params.append('pages', pages);
+        params.append('style', style);
+        params.append('colors', `${mainColor} / ${subColor} / ${accentColor}`); // 색상 정보 합치기
+        params.append('ref', ref);
+        params.append('level', level);
+        params.append('optText', optText);
+        params.append('total', total);
+        params.append('duration', duration);
 
-        // 구글 시트로 데이터 전송 (넷리파이 없이 다이렉트 전송)
-        fetch(scriptURL, { 
-            method: 'POST', 
-            mode: 'no-cors', 
-            body: params 
-        })
-        .then(() => console.log("✅ 구글 시트 저장 완료!"))
-        .catch(e => console.log("❌ 시트 전송 실패:", e));
+        // 3. [시트로 데이터 전송 실행]
+        if (scriptURL && !scriptURL.includes("여기에")) {
+            fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: params })
+                .then(() => console.log("✅ Ebook 견적 시트 저장 완료!"))
+                .catch(e => console.error("❌ Ebook 시트 전송 실패:", e));
+        }
 
-        // 3. [클립보드 복사용 텍스트]
-        const text = `📋 [자동 견적 의뢰서]
-
-1. 프로젝트: ${title}
-2. 분야: ${category}
-3. 등급: ${level}
-4. 수량: ${qty}
-5. 추가 옵션: ${optText}
-
-💰 예상 견적: ${total}`;
-
-        // 4. 복사하고 모달 띄우기
-        navigator.clipboard.writeText(text).then(() => {
+        // 4. [클립보드 복사 및 모달 표시]
+        navigator.clipboard.writeText(clipboardText).then(() => {
             document.getElementById('resultModal').classList.add('visible');
         }).catch(err => {
-            alert('복사 실패. 내용을 직접 캡처해주세요.');
+            alert('복사에 실패했습니다. 내용을 직접 복사해주세요.');
+        });
+    }
+    
+    // [UI 개선] 드롭다운 선택 시 색상 변경 기능
+    function initSelectHighlight() {
+        const selects = document.querySelectorAll('.form-select');
+        selects.forEach(select => {
+            // 초기 상태 확인 (이미 선택된 값이 있으면 강조)
+            if (select.value) select.classList.add('is-selected');
+
+            select.addEventListener('change', function() {
+                if (this.value) this.classList.add('is-selected');
+                else this.classList.remove('is-selected');
+            });
         });
     }
 
-    // [중요] 화면이 켜지자마자 실행 (드롭다운 먹통 방지)
-    document.addEventListener('DOMContentLoaded', () => {
-        loadPricesFromSheet();
+    // 초기화
+    window.addEventListener('load', () => {
+        const activeBtn = document.querySelector('.tab-btn.active');
+        moveTabLine(activeBtn);
+        updatePreview();
+        showProofreadingInfo(); // 초기 상태 반영
+        loadPricesFromSheet();  // 구글 시트 가격 불러오기
+        calculateTotal();
+        initSelectHighlight(); // 드롭다운 하이라이트 기능 활성화
+    });
+
+    // 창 크기 변경 시 라인 위치 재조정
+    window.addEventListener('resize', () => {
+        const activeBtn = document.querySelector('.tab-btn.active');
+        moveTabLine(activeBtn);
     });
 </script>
 
