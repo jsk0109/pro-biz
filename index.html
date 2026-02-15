@@ -266,14 +266,20 @@
         OPT3_NAME: "🔄 수정 횟수 추가"
     };
 
-    // ☁️ [SaaS 모드] URL에서 시트 주소 가져오기 (?config=주소)
+    // ☁️ [설정] 여기에 구글 시트 CSV 주소를 넣으세요!
+    // 예시: "https://docs.google.com/spreadsheets/d/e/.../pub?output=csv"
+    const FIXED_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHyolsuOcpGvxjt9iP2In0sAOWye-rY4OwSKLT9U9fYLvC1BV1fl5kuA11WadBEeHhlTIAbCQ0-ffH/pub?gid=0&single=true&output=csv"; // ← 여기에 주소 붙여넣기 필수!
+
+    // URL 파라미터가 있으면 그걸 쓰고, 없으면 위에서 설정한 주소를 씁니다.
     const urlParams = new URLSearchParams(window.location.search);
-    let SHEET_URL = urlParams.get('config');
+    let SHEET_URL = urlParams.get('config') || FIXED_SHEET_URL;
 
     async function loadPricesFromSheet() {
-        // 1. URL에 설정된 시트가 없으면 -> 설정 모달 띄우기
+        // 1. 시트 주소가 없으면 -> 기본값으로 화면만 그리고 끝냄 (팝업 안 띄움)
         if (!SHEET_URL) {
-            document.getElementById('setupModal').classList.add('visible');
+            console.log("설정된 시트 주소가 없습니다. 기본값으로 실행합니다.");
+            updateUI();
+            calculateTotal();
             return;
         }
 
@@ -285,7 +291,7 @@
                 return;
             }
 
-            // [수정] 캐시 방지: URL 뒤에 현재 시간을 붙여서 매번 새 데이터를 가져오게 함
+            // 2. 데이터 가져오기 (캐시 방지 적용)
             const noCacheUrl = SHEET_URL + (SHEET_URL.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
             const response = await fetch(noCacheUrl);
             const text = await response.text();
@@ -296,21 +302,17 @@
                 return;
             }
 
-            // [수정] CSV 파싱 로직 개선 (쉼표가 포함된 텍스트나 가격 오류 방지)
+            // [수정] 3. 데이터 파싱 업그레이드 (설명 컬럼 무시 기능 추가)
             const rows = text.split('\n');
             
             rows.forEach(row => {
-                // 첫 번째 쉼표를 기준으로 키와 값을 나눔
-                const firstCommaIdx = row.indexOf(',');
-                if (firstCommaIdx === -1) return;
-
-                const cleanKey = row.substring(0, firstCommaIdx).trim();
-                let cleanVal = row.substring(firstCommaIdx + 1).trim();
+                // 정규식으로 CSV 파싱 (따옴표 안의 쉼표는 유지하고, 컬럼만 나눔)
+                const parts = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 
-                // 구글 시트가 추가한 따옴표(") 제거
-                if (cleanVal.startsWith('"') && cleanVal.endsWith('"')) {
-                    cleanVal = cleanVal.slice(1, -1).replace(/""/g, '"');
-                }
+                if (parts.length < 2) return; // 데이터가 없으면 패스
+
+                const cleanKey = parts[0].trim().replace(/^"|"$/g, '');   // A열: 키
+                let cleanVal = parts[1].trim().replace(/^"|"$/g, '').replace(/""/g, '"'); // B열: 값 (C열 설명은 무시됨)
                 
                 // 숫자인지 텍스트인지 구별해서 저장
                 if (cleanKey.includes("NAME") || cleanKey.includes("TITLE") || cleanKey.includes("DESC") || cleanKey.includes("LBL") || cleanKey.includes("CATEGORY")) {
@@ -322,10 +324,17 @@
                 }
             });
             
-            // 3. 화면 텍스트(옵션명 등) 업데이트
-            updateUI();
-            calculateTotal();
-        } catch (e) { console.log("시트 연동 실패(기본값 사용)"); }
+        } catch (e) {
+            console.error("시트 연동 실패 (기본값 사용):", e);
+            // 주소가 있는데 실패한 경우에만 알림
+            if (SHEET_URL) {
+                // alert("⚠️ 시트 연동 실패: " + e.message); // 너무 자주 뜨면 주석 처리하세요
+            }
+        }
+
+        // 4. 화면 업데이트 (성공하든 실패하든 무조건 실행 -> 드롭다운 먹통 방지)
+        updateUI();
+        calculateTotal();
     }
 
     function updateUI() {
@@ -346,10 +355,14 @@
             catSelect.innerHTML = '<option value="" selected disabled hidden>선택해주세요</option>';
             const opts = String(PRICES.CATEGORY_OPTIONS).split('|');
             opts.forEach(opt => {
-                const option = document.createElement('option');
-                option.value = opt.trim();
-                option.innerText = opt.trim();
-                catSelect.appendChild(option);
+                // [수정] 빈 칸이 생기지 않도록 내용이 있을 때만 추가
+                const val = opt.trim();
+                if (val) {
+                    const option = document.createElement('option');
+                    option.value = val;
+                    option.innerText = val;
+                    catSelect.appendChild(option);
+                }
             });
         }
         
@@ -475,6 +488,11 @@ function copyResult() {
             alert('복사 실패. 내용을 직접 캡처해주세요.');
         });
     }
+
+    // [중요] 화면이 켜지자마자 실행 (드롭다운 먹통 방지)
+    document.addEventListener('DOMContentLoaded', () => {
+        loadPricesFromSheet();
+    });
 </script>
 
 </body>
